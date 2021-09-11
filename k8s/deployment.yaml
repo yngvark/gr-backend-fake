@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-app-template
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-app-template
+  template:
+    metadata:
+      labels:
+        app: k8s-app-template
+    spec:
+      imagePullSecrets:
+        - name: regsecret
+      containers:
+      - image: docker.pkg.github.com/yngvark/k8s-app-template/k8s-app-template:latest
+        name: k8s-app-template
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          timeoutSeconds: 7
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          failureThreshold: 3
+          initialDelaySeconds: 3
+          timeoutSeconds: 7
