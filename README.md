@@ -1,1 +1,8 @@
-See makefile for what you can do.
+Run with:
+
+```sh
+make up
+
+# In a new terminal, run
+make run
+```

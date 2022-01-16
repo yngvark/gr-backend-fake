@@ -1,22 +1,28 @@
-#https://github.com/codefresh-contrib/golang-sample-app/blob/master/Dockerfile.multistage
-# Build image
-FROM golang:1.15.2-alpine as build
+# golang:1.15.5
+FROM golang@sha256:cf46c759511d0376c706a923f2800762948d4ea1a9290360720d5124a730ed63 AS builder
 
-WORKDIR /tmp/app
+WORKDIR /build
 
-COPY *.go .
-COPY go.* .
+COPY go.mod go.sum ./
 
 RUN go mod download
+
 COPY . .
 
-RUN go build -o out/app .
+# https://rollout.io/blog/building-minimal-docker-containers-for-go-applications/
+# TL;DR: This makes the built binary run on alpine linux
+ENV CGO_ENABLED=0
+ENV GOOS=linux
 
-# App image
+RUN go build -a -installsuffix cgo -o main .
 
-FROM alpine:3.12
+# alpine:3.12.1
+FROM alpine@sha256:c0e9560cda118f9ec63ddefb4a173a2b2a0347082d7dff7dc14272e7841a5b5a
 
-RUN mkdir /app
-COPY --from=build /tmp/app/out/app /app/app
+WORKDIR /app
 
-CMD [ "/app/app" ]
+COPY --from=builder /build/* ./
+
+RUN chmod +x /app/main
+
+CMD ["/app/main" ]
