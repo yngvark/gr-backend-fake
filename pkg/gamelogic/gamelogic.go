@@ -23,6 +23,22 @@ type GameLogic struct {
 
 // Run continuously publishes messages with game logic events. It blocks until signalled to stop.
 func (l *GameLogic) Run() {
+	l.log.Info("Sending world map")
+
+	wmap := worldmap.New(30, 30)
+
+	wmapJSON, err := json.Marshal(wmap)
+	if err != nil {
+		l.log.Info("could not marshal world map: %w", err)
+		return
+	}
+
+	err = l.publisher.SendMsg(string(wmapJSON))
+	if err != nil {
+		l.log.Error("Could not send world map")
+		return
+	}
+
 	l.log.Info("Starting to generate...")
 
 	ticker := time.NewTicker(time.Second * 1) //nolint:gomnd

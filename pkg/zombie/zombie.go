@@ -13,7 +13,7 @@ type Zombie struct {
 	ID       string
 	X        int
 	Y        int
-	WorldMap *worldmap.WorldMap
+	WorldMap *worldmap.MapCreate
 	Rand     *rand.Rand
 }
 
@@ -52,7 +52,7 @@ func (z *Zombie) getNewCoordPart(currentValue int, axisType worldmap.AxisType) (
 }
 
 // NewZombie returns a new Zombie
-func NewZombie(id string, x int, y int, worldMap *worldmap.WorldMap, rnd *rand.Rand) *Zombie {
+func NewZombie(id string, x int, y int, worldMap *worldmap.MapCreate, rnd *rand.Rand) *Zombie {
 	return &Zombie{
 		ID:       id,
 		X:        x,
