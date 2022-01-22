@@ -3,46 +3,46 @@ package websocket
 import (
 	"context"
 	"errors"
+	"github.com/yngvark/gr-zombie/pkg/connectors"
+	"github.com/yngvark/gr-zombie/pkg/pubsub/broadcast"
 	"net/http"
 
 	"github.com/yngvark/gr-zombie/pkg/connectors/websocket/httphandler"
-	"github.com/yngvark/gr-zombie/pkg/pubsub"
 	"go.uber.org/zap"
 )
 
-type websocketConsumer struct {
+type connctionHandler struct {
 	ctx        context.Context
 	logger     *zap.SugaredLogger
 	subscriber chan string
 
-	httpHandler *httphandler.HTTPHandler
-	listening   bool
+	httpHandler        *httphandler.ConnectedHandler
+	listening          bool
+	broadcaster        *broadcast.Broadcaster
+	allowedCorsOrigins map[string]bool
 }
 
-// ListenForMessages starts to receive messages which will be available by reading SubscriberChannel(). It blocks
-// until the websocketConsumer's context is canceled, so you should start it as a goroutine.
-func (c *websocketConsumer) ListenForMessages() error {
+// ListenForConnections starts to receive messages which will be available by reading SubscriberChannel().
+func (c *connctionHandler) ListenForConnections(onConnect connectors.OnConnect) error {
 	if !c.listening {
 		c.listening = true
 	} else {
 		return errors.New("already listening for messages. Can listen for messages only once")
 	}
 
-	http.Handle("/zombie", c.httpHandler)
+	http.HandleFunc(
+		"/zombie",
+		httphandler.New(c.ctx, c.logger, c.allowedCorsOrigins, onConnect, c.subscriber, c.broadcaster),
+	)
 
-	<-c.ctx.Done()
+	//<-c.ctx.Done()
 
 	return nil
 }
 
-// SubscriberChannel returns a channel which can be used for reading incoming messages
-func (c *websocketConsumer) SubscriberChannel() chan string {
-	return c.subscriber
-}
-
-// Close closes the websocketConsumer
-func (c *websocketConsumer) Close() error {
-	c.logger.Info("Closing websocketConsumer")
+// Close closes the connctionHandler
+func (c *connctionHandler) Close() error {
+	c.logger.Info("Closing connctionHandler")
 
 	if c.httpHandler != nil {
 		return c.httpHandler.Close()
@@ -51,17 +51,19 @@ func (c *websocketConsumer) Close() error {
 	return nil
 }
 
-// NewConsumer returns a new consumer for websockets
-func newConsumer(
+// NewConnector returns a new consumer for websockets
+func NewConnector(
 	ctx context.Context,
 	logger *zap.SugaredLogger,
 	subscriber chan string,
-	httphandler *httphandler.HTTPHandler,
-) pubsub.Consumer {
-	return &websocketConsumer{
-		ctx:         ctx,
-		logger:      logger,
-		subscriber:  subscriber,
-		httpHandler: httphandler,
+	allowedCorsOrigins map[string]bool,
+	broadcaster *broadcast.Broadcaster,
+) connectors.Connector {
+	return &connctionHandler{
+		ctx:                ctx,
+		logger:             logger,
+		subscriber:         subscriber,
+		broadcaster:        broadcaster,
+		allowedCorsOrigins: allowedCorsOrigins,
 	}
 }

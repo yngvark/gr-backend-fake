@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/yngvark/gr-zombie/pkg/connectors/kafka"
+	"github.com/yngvark/gr-zombie/pkg/connectors"
+	"github.com/yngvark/gr-zombie/pkg/pubsub/broadcast"
 	"os"
 
 	"github.com/yngvark/gr-zombie/pkg/connectors/websocket/oslookup"
@@ -17,69 +18,75 @@ import (
 
 // GameOpts contains various dependencies
 type GameOpts struct {
-	context   context.Context
-	logger    *zap.SugaredLogger
-	publisher pubsub.Publisher
-	consumer  pubsub.Consumer
+	context     context.Context
+	cancelFn    context.CancelFunc
+	log         *zap.SugaredLogger
+	subscriber  chan string
+	broadcaster *broadcast.Broadcaster
+	connector   connectors.Connector
 }
 
 type getEnv func(key string) string
 
+//goland:noinspection GoUnusedParameter
 func newGameOpts(ctx context.Context, cancelFn context.CancelFunc, getEnv getEnv) (*GameOpts, error) {
-	logger, err := log2.New()
+	log, err := log2.New()
 	if err != nil {
 		return nil, fmt.Errorf("could not create logger: %w", err)
 	}
 
-	var publisher pubsub.Publisher
+	broadcaster := broadcast.New(log)
 
-	var consumer pubsub.Consumer
+	var connector connectors.Connector
 
 	subscriber := make(chan string)
 
 	switch {
-	case getEnv("GAME_QUEUE_TYPE") == "kafka":
-		publisher, consumer, err = pubSubForKafka(ctx, cancelFn, logger, subscriber)
-		if err != nil {
-			return nil, fmt.Errorf("creating pulsar connectors: %w", err)
-		}
+	//case getEnv("GAME_QUEUE_TYPE") == "kafka":
+	//	consumer, err = pubSubForKafka(ctx, cancelFn, logger, subscriber)
+	//	if err != nil {
+	//		return nil, fmt.Errorf("creating pulsar connectors: %w", err)
+	//	}
 	default:
-		publisher, consumer, err = pubSubForWebsocket(ctx, cancelFn, logger, subscriber)
+		connector, err = newWebsocketConnector(ctx, log, subscriber, broadcaster)
 		if err != nil {
 			return nil, fmt.Errorf("creating websocket connectors: %w", err)
 		}
 	}
 
 	return &GameOpts{
-		context:   ctx,
-		logger:    logger,
-		publisher: publisher,
-		consumer:  consumer,
+		context:     ctx,
+		cancelFn:    cancelFn,
+		log:         log,
+		subscriber:  subscriber,
+		broadcaster: broadcaster,
+		connector:   connector,
 	}, nil
 }
 
 const allowedCorsOriginsEnvVarKey = "ALLOWED_CORS_ORIGINS"
 
-func pubSubForWebsocket(
+func newWebsocketConnector(
 	ctx context.Context,
-	cancelFn context.CancelFunc,
 	logger *zap.SugaredLogger,
 	subscriber chan string,
-) (pubsub.Publisher, pubsub.Consumer, error) {
+	broadcaster *broadcast.Broadcaster,
+) (connectors.Connector, error) {
 	corsHelper := oslookup.NewCORSHelper(logger)
 
 	allowedCorsOrigins, err := corsHelper.GetAllowedCorsOrigins(os.LookupEnv, allowedCorsOriginsEnvVarKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("getting allowed CORS origins: %w", err)
+		return nil, fmt.Errorf("getting allowed CORS origins: %w", err)
 	}
 
 	corsHelper.PrintAllowedCorsOrigins(allowedCorsOrigins)
 
-	p, c := websocket.New(ctx, cancelFn, logger, subscriber, allowedCorsOrigins)
+	c := websocket.NewConnector(ctx, logger, subscriber, allowedCorsOrigins, broadcaster)
 
-	return p, c, nil
+	return c, nil
 }
 
+//goland:noinspection GoUnusedFunction
 func pubSubForPulsar(
 	ctx context.Context,
 	cancelFn context.CancelFunc,
@@ -99,7 +106,7 @@ func pubSubForPulsar(
 	return p, c, nil
 }
 
-func pubSubForKafka(
+/*func pubSubForKafka(
 	ctx context.Context,
 	cancelFn context.CancelFunc,
 	logger *zap.SugaredLogger,
@@ -114,3 +121,4 @@ func pubSubForKafka(
 
 	return p, c, nil
 }
+*/

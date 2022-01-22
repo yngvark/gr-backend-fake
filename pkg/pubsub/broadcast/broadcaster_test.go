@@ -12,23 +12,25 @@ import (
 )
 
 func TestPubSub(t *testing.T) {
-	t.Run("Should send message to listeners", func(t *testing.T) {
-		// Given
-		var broadcaster *broadcast.Broadcaster = broadcast.New()
-		testSubscriber := make(chan string)
+	t.Run(
+		"Should send message to listeners", func(t *testing.T) {
+			// Given
+			var broadcaster *broadcast.Broadcaster = broadcast.New(nil)
+			testSubscriber := make(chan string)
 
-		broadcaster.AddSubscriber(testSubscriber)
+			broadcaster.AddSubscriber(testSubscriber)
 
-		// When
-		fmt.Println("sending")
-		go func() {
-			err := broadcaster.BroadCast("YO")
-			require.NoError(t, err)
-		}()
+			// When
+			fmt.Println("sending")
+			go func() {
+				err := broadcaster.BroadCast("YO")
+				require.NoError(t, err)
+			}()
 
-		// Then
-		fmt.Println("receiving")
-		lastMsgReceived := <-testSubscriber
-		assert.Equal(t, "YO", lastMsgReceived)
-	})
+			// Then
+			fmt.Println("receiving")
+			lastMsgReceived := <-testSubscriber
+			assert.Equal(t, "YO", lastMsgReceived)
+		},
+	)
 }

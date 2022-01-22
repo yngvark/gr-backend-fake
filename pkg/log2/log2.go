@@ -19,6 +19,14 @@ func New() (*zap.SugaredLogger, error) {
 		logType = "JSON"
 	}
 
+	var level zapcore.Level
+	levelString, ok := os.LookupEnv("LOG_LEVEL")
+	if !ok {
+		level = zap.InfoLevel
+	} else if strings.ToLower(levelString) == "debug" {
+		level = zap.DebugLevel
+	}
+
 	switch strings.ToLower(logType) {
 	case "JSON":
 		l, err := zap.NewProduction()
@@ -31,6 +39,7 @@ func New() (*zap.SugaredLogger, error) {
 		config := zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeTime = func(time.Time, zapcore.PrimitiveArrayEncoder) {}
 		config.EncoderConfig.EncodeCaller = func(zapcore.EntryCaller, zapcore.PrimitiveArrayEncoder) {}
+		config.Level.SetLevel(level)
 
 		l, err := config.Build()
 		if err != nil {

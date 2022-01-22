@@ -1,19 +1,22 @@
 // Package broadcast knows how to broadcast messages to subscribers
 package broadcast
 
+import "go.uber.org/zap"
+
 // Broadcaster is used for sending (broadcasting) messages to a number of subscribers
 type Broadcaster struct {
 	subscribers []chan<- string
+	log         *zap.SugaredLogger
 }
 
 // AddSubscriber adds a Subscriber to its list of subscribers
-func (n *Broadcaster) AddSubscriber(subscriber chan<- string) {
-	n.subscribers = append(n.subscribers, subscriber)
+func (b *Broadcaster) AddSubscriber(subscriber chan<- string) {
+	b.subscribers = append(b.subscribers, subscriber)
 }
 
 // BroadCast sends a message to all Subscriber-s
-func (n *Broadcaster) BroadCast(msg string) error {
-	for _, subscriber := range n.subscribers {
+func (b *Broadcaster) BroadCast(msg string) error {
+	for _, subscriber := range b.subscribers {
 		subscriber <- msg
 	}
 
@@ -21,8 +24,9 @@ func (n *Broadcaster) BroadCast(msg string) error {
 }
 
 // New returns a new Broadcaster
-func New() *Broadcaster {
+func New(logger *zap.SugaredLogger) *Broadcaster {
 	return &Broadcaster{
+		log:         logger,
 		subscribers: make([]chan<- string, 0),
 	}
 }

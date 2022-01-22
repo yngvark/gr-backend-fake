@@ -64,6 +64,7 @@ run: ##-
 #	LOG_TYPE="simple" \
 #	GAME_QUEUE_TYPE="websocket" \
 
+	# To run in Intellij, paste environment var below without quotes
 	ALLOWED_CORS_ORIGINS="http://localhost:3000,http://localhost:3001,http://localhost:30010,http://127.0.0.1:3000" \
 	go run *.go
 

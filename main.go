@@ -47,14 +47,16 @@ func run() error {
 	}
 
 	serverAddr := ":" + port
-	gameOpts.logger.Infof("Running on %s\n", serverAddr)
+	gameOpts.log.Infof("Running on %s\n", serverAddr)
 
 	go func() {
-		gameOpts.logger.Info("Now attempting to listen on port " + port)
+		gameOpts.log.Info("Now attempting to listen on port " + port)
 
 		err = http.ListenAndServe(serverAddr, nil)
 
-		gameOpts.logger.Errorf("HTTP listen and serve: %s", err.Error())
+		gameOpts.log.Errorf("HTTP listen and serve: %s", err.Error())
+
+		gameOpts.log.Debug("main.run: Calling cancelFn")
 		cancelFn()
 	}()
 
