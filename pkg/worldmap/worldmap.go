@@ -19,11 +19,12 @@ var Axis = struct { //nolint:gochecknoglobals
 
 // WorldMap is a world map
 type WorldMap struct {
-	Type string `json:"type,omitempty"`
-	MinX int    `json:"minX,omitempty"`
-	MaxX int    `json:"maxX,omitempty"`
-	MinY int    `json:"minY,omitempty"`
-	MaxY int    `json:"maxY,omitempty"`
+	Type  string  `json:"type,omitempty"`
+	MinX  int     `json:"minX,omitempty"`
+	MaxX  int     `json:"maxX,omitempty"`
+	MinY  int     `json:"minY,omitempty"`
+	MaxY  int     `json:"maxY,omitempty"`
+	Tiles [][]int `json:"tiles,omitempty"`
 }
 
 // IsInMap returns whether a point on the axis of a given type, is within the map
@@ -48,11 +49,29 @@ func (m *WorldMap) yIsInMap(y int) bool {
 
 // New returns a new WorldMap
 func New(maxX int, maxY int) *WorldMap {
+	tiles := generateTiles(maxX, maxY)
+
 	return &WorldMap{
-		Type: "mapCreate",
-		MinX: 0,
-		MaxX: maxX,
-		MinY: 0,
-		MaxY: maxY,
+		Type:  "mapCreate",
+		MinX:  0,
+		MaxX:  maxX,
+		MinY:  0,
+		MaxY:  maxY,
+		Tiles: tiles,
 	}
+}
+
+func generateTiles(maxX, maxY int) [][]int {
+	ys := make([][]int, maxY)
+
+	for y := 0; y < maxY; y++ {
+		xs := make([]int, maxX)
+		ys[y] = xs
+
+		for x := 0; x < maxX; x++ {
+			xs[x] = y*maxX + x
+		}
+	}
+
+	return ys
 }
