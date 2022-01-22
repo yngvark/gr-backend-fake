@@ -17,8 +17,8 @@ var Axis = struct { //nolint:gochecknoglobals
 	Y: 2, //nolint:gomnd
 }
 
-// MapCreate is a world map
-type MapCreate struct {
+// WorldMap is a world map
+type WorldMap struct {
 	Type string `json:"type,omitempty"`
 	MinX int    `json:"minX,omitempty"`
 	MaxX int    `json:"maxX,omitempty"`
@@ -27,7 +27,7 @@ type MapCreate struct {
 }
 
 // IsInMap returns whether a point on the axis of a given type, is within the map
-func (m *MapCreate) IsInMap(axisValue int, axis AxisType) (bool, error) {
+func (m *WorldMap) IsInMap(axisValue int, axis AxisType) (bool, error) {
 	switch axis {
 	case Axis.X:
 		return m.xIsInMap(axisValue), nil
@@ -38,17 +38,17 @@ func (m *MapCreate) IsInMap(axisValue int, axis AxisType) (bool, error) {
 	}
 }
 
-func (m *MapCreate) xIsInMap(x int) bool {
+func (m *WorldMap) xIsInMap(x int) bool {
 	return x >= m.MinX && x <= m.MaxX
 }
 
-func (m *MapCreate) yIsInMap(y int) bool {
+func (m *WorldMap) yIsInMap(y int) bool {
 	return y >= m.MinY && y <= m.MaxY
 }
 
-// New returns a new MapCreate
-func New(maxX int, maxY int) *MapCreate {
-	return &MapCreate{
+// New returns a new WorldMap
+func New(maxX int, maxY int) *WorldMap {
+	return &WorldMap{
 		Type: "mapCreate",
 		MinX: 0,
 		MaxX: maxX,
