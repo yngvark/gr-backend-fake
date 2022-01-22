@@ -13,10 +13,9 @@ import (
 
 type connctionHandler struct {
 	ctx        context.Context
-	logger     *zap.SugaredLogger
+	log        *zap.SugaredLogger
 	subscriber chan string
 
-	httpHandler        *httphandler.ConnectedHandler
 	listening          bool
 	broadcaster        *broadcast.Broadcaster
 	allowedCorsOrigins map[string]bool
@@ -32,22 +31,14 @@ func (c *connctionHandler) ListenForConnections(onConnect connectors.OnConnect) 
 
 	http.HandleFunc(
 		"/zombie",
-		httphandler.New(c.ctx, c.logger, c.allowedCorsOrigins, onConnect, c.subscriber, c.broadcaster),
+		httphandler.New(c.ctx, c.log, c.allowedCorsOrigins, onConnect, c.subscriber, c.broadcaster),
 	)
-
-	//<-c.ctx.Done()
 
 	return nil
 }
 
-// Close closes the connctionHandler
-func (c *connctionHandler) Close() error {
-	c.logger.Info("Closing connctionHandler")
-
-	if c.httpHandler != nil {
-		return c.httpHandler.Close()
-	}
-
+func (c *connctionHandler) StopListening() error {
+	c.log.Info("connctionHandler.StopListening")
 	return nil
 }
 
@@ -61,7 +52,7 @@ func NewConnector(
 ) connectors.Connector {
 	return &connctionHandler{
 		ctx:                ctx,
-		logger:             logger,
+		log:                logger,
 		subscriber:         subscriber,
 		broadcaster:        broadcaster,
 		allowedCorsOrigins: allowedCorsOrigins,

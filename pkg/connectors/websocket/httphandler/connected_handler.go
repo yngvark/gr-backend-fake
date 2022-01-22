@@ -22,7 +22,7 @@ type ConnectedHandler struct {
 	broadcaster *broadcast.Broadcaster
 }
 
-func (h *ConnectedHandler) readIncomingMessages(closeConnectionChannel chan<- bool) {
+func (h *ConnectedHandler) readIncomingMessages() {
 	for {
 		h.log.Debug("Reading next message from client...")
 
@@ -31,44 +31,41 @@ func (h *ConnectedHandler) readIncomingMessages(closeConnectionChannel chan<- bo
 			// Client disconnected
 			h.log.Info("Client disconnected")
 
-			closeConnectionChannel <- true
-
 			closeError, ok := err.(*websocket.CloseError)
 			if ok {
-				h.log.Infof("Client disconnected OK. Code: %d", closeError.Code)
+				h.log.Debugf("Client disconnected OK. Code: %d", closeError.Code)
 			} else {
-				h.log.Errorf("Read error: %s", err.Error())
+				h.log.Errorf("Client disconnect read error: %s", err.Error())
 			}
 
-			break
+			return
 		}
 
 		h.log.Infof("Sending received message to subscriber: %s", message)
 		h.subscriber <- string(message)
 	}
-
-	h.log.Debug("Done reading incoming messages")
 }
 
-func (h *ConnectedHandler) closeConnectionWhenDone(closeConnectionChannel <-chan bool) {
+func (h *ConnectedHandler) closeConnectionWhenDone(websocketReadStoppedChannel <-chan bool) {
 	select {
-	case <-closeConnectionChannel:
-		h.log.Debug("ConnectedHandler.closeConnectionWhenDone")
+	case <-websocketReadStoppedChannel:
+		h.log.Debug("ConnectedHandler.closeConnectionWhenDone.websocketReadFailureChannel")
+		return
 	case <-h.ctx.Done():
-		h.log.Debug("ConnectedHandler.ctx.Done")
+		h.log.Debug("ConnectedHandler.closeConnectionWhenDone.ctx.Done")
 	}
 
 	h.log.Info("Closing connection to client")
-	err := h.Close()
+	err := h.CloseIt()
 
 	if err != nil {
-		h.log.Info("error when closing connection: %w", err)
+		h.log.Error("ConnectedHandler.closeConnectionWhenDone: %w", err)
 	} else {
-		h.log.Info("Connection closed successfully.")
+		h.log.Info("ConnectedHandler.closeConnectionWhenDone success")
 	}
 }
 
-func (h *ConnectedHandler) forwardMessagesToClient(closeConnectionChannel chan bool, messagesToClientChannel chan string) {
+func (h *ConnectedHandler) forwardMessagesToClient(messagesToClientChannel chan string) {
 	h.broadcaster.AddSubscriber(messagesToClientChannel)
 
 	for {
@@ -76,15 +73,17 @@ func (h *ConnectedHandler) forwardMessagesToClient(closeConnectionChannel chan b
 		case msgToClient := <-messagesToClientChannel:
 			err := h.sendMsgToConnection(msgToClient)
 			if err != nil {
-				h.log.Errorf("Could not send message to client. Stopping. Msg: %s", msgToClient)
-				closeConnectionChannel <- true
+				h.log.Info("Could not send message to client. Stopping handler for this connection.")
+
+				err = h.CloseIt()
+				if err != nil {
+					h.log.Errorf("error closing: %w", err)
+				}
 
 				return
 			}
-
-		case <-closeConnectionChannel:
-			h.log.Debug("closeConnectionChannel signal. Stopping broadcasting to client.")
-
+		case <-h.ctx.Done():
+			h.log.Debug("ConnectedHandler.forwardMessagesToClient.ctx.Done. Stopping broadcasting to client.")
 			return
 		}
 	}
@@ -106,9 +105,9 @@ func (h *ConnectedHandler) sendMsgToConnection(msg string) error {
 	return nil
 }
 
-// Close closes the handler
-func (h *ConnectedHandler) Close() error {
-	h.log.Info("Closing ConnectedHandler")
+// CloseIt closes the handler
+func (h *ConnectedHandler) CloseIt() error {
+	h.log.Info("ConnectedHandler.Close()")
 
 	if h.connection != nil {
 		err := h.connection.Close()
@@ -120,6 +119,8 @@ func (h *ConnectedHandler) Close() error {
 
 			return err
 		}
+
+		h.log.Info("ConnectedHandler.Close() success.")
 	}
 
 	return nil

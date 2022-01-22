@@ -11,7 +11,7 @@ import (
 func runGameLogic(o *GameOpts) error {
 	// Close producer and consumer when done
 	defer func() {
-		err := o.connector.Close()
+		err := o.connector.StopListening()
 		if err != nil {
 			o.log.Errorf("error closing consumer: %s", err.Error())
 		}
@@ -25,17 +25,6 @@ func runGameLogic(o *GameOpts) error {
 		o.log.Errorf("Error listening for connections: %s", err.Error())
 		o.cancelFn()
 	}
-
-	go func() {
-		for {
-			select {
-			case msgFromClient := <-o.subscriber:
-				o.log.Debugf("Msg from client: %s", msgFromClient)
-			case <-o.context.Done():
-				o.log.Debug("gamelogic: Stop listnening for messages from client")
-			}
-		}
-	}()
 
 	o.log.Info("Running game")
 	gameLogic.Run()

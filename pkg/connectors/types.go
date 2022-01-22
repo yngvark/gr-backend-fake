@@ -6,8 +6,8 @@ package connectors
 type Connector interface {
 	// ListenForConnections listens for incoming connections. It may or may not block, see implementation comments.
 	ListenForConnections(OnConnect) error
-	// Close closes the Connector
-	Close() error
+	// CloseConnection closes the Connector
+	StopListening() error
 }
 
 // OnConnect is a function that is called when a client connects

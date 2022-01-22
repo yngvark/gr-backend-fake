@@ -63,13 +63,21 @@ func run() error {
 	http.HandleFunc("/health", health)
 
 	// Run game
-	return runGameLogic(gameOpts)
+	err = runGameLogic(gameOpts)
+	if err != nil {
+		return fmt.Errorf("running game logic: %w", err)
+	}
+
+	gameOpts.log.Info("runGameLogic stopped")
+
+	return nil
 }
 
 func cancelProgramIfOsInterrupts(ctx context.Context, osInterruptChan chan os.Signal, cancelFn context.CancelFunc) {
 	func() {
 		select {
 		case <-osInterruptChan:
+			fmt.Println("OS interrupt. Calling cancelFn.")
 			cancelFn()
 		case <-ctx.Done():
 			// Stop listening

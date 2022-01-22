@@ -11,7 +11,7 @@ import (
 
 // New returns a HTTP handler that handles incoming websocket connections
 // context is used to disconnect clients when the caller decides it's time to stop.
-// subscriber is used as a channel to forward incoming messages from the websocket to
+// subscriber is used to for parent callers to push messages to. These messages will be sent to the websocket.
 func New(
 	ctx context.Context,
 	logger *zap.SugaredLogger,
@@ -36,11 +36,21 @@ func New(
 
 		h := NewConnectedHandler(ctx, logger, connection, subscriber, broadcaster)
 
-		closeConnectionChannel := make(chan bool)
+		websocketReadFailureChannel := make(chan bool)
 		messagesToClientChannel := make(chan string)
 
-		go h.readIncomingMessages(closeConnectionChannel)
-		go h.forwardMessagesToClient(closeConnectionChannel, messagesToClientChannel)
+		go func() {
+			h.log.Info("START readIncomingMessages")
+			h.readIncomingMessages()
+			close(websocketReadFailureChannel)
+			h.log.Info("END readIncomingMessages")
+		}()
+
+		go func() {
+			h.log.Info("START FORWARDING")
+			h.forwardMessagesToClient(messagesToClientChannel)
+			h.log.Info("DONE FORWARDING")
+		}()
 
 		err = onConnect(messagesToClientChannel)
 		if err != nil {
@@ -48,7 +58,9 @@ func New(
 			return
 		}
 
-		h.closeConnectionWhenDone(closeConnectionChannel)
+		h.log.Info("START h.closeConnectionWhenDone")
+		h.closeConnectionWhenDone(websocketReadFailureChannel)
+		h.log.Info("END h.closeConnectionWhenDone")
 	}
 }
 

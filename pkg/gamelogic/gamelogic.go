@@ -24,13 +24,14 @@ type GameLogic struct {
 // Run continuously publishes messages with game logic events. It blocks until signalled to stop.
 func (l *GameLogic) Run() {
 	l.log.Info("Producing game events...")
+
 	ticker := time.NewTicker(time.Second * 1) //nolint:gomnd
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-l.ctx.Done():
-			l.log.Debug("Gamelogic done")
+			l.log.Debug("GameLogic.ctx.Done")
 
 			return
 		case <-ticker.C:

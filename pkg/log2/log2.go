@@ -20,11 +20,13 @@ func New() (*zap.SugaredLogger, error) {
 	}
 
 	var level zapcore.Level
+
 	levelString, ok := os.LookupEnv("LOG_LEVEL")
 	if !ok {
 		level = zap.InfoLevel
 	} else if strings.ToLower(levelString) == "debug" {
 		level = zap.DebugLevel
+		fmt.Println("DEBUG_LEVEL: debug")
 	}
 
 	switch strings.ToLower(logType) {
