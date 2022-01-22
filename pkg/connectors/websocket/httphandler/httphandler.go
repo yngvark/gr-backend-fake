@@ -5,10 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/yngvark/gr-zombie/pkg/pubsub/broadcast"
 	"net"
 	"net/http"
 
-	"github.com/yngvark/gr-zombie/pkg/connectors/websocket/httphandler/broadcast"
 	"go.uber.org/zap"
 
 	"github.com/gorilla/websocket"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/yngvark/gr-zombie/pkg/connectors/websocket/httphandler/broadcast"
+	"github.com/yngvark/gr-zombie/pkg/pubsub/broadcast"
 
 	"github.com/stretchr/testify/require"
 
@@ -14,7 +14,7 @@ import (
 func TestPubSub(t *testing.T) {
 	t.Run("Should send message to listeners", func(t *testing.T) {
 		// Given
-		broadcaster := broadcast.New()
+		var broadcaster *broadcast.Broadcaster = broadcast.New()
 		testSubscriber := make(chan string)
 
 		broadcaster.AddSubscriber(testSubscriber)
@@ -22,7 +22,7 @@ func TestPubSub(t *testing.T) {
 		// When
 		fmt.Println("sending")
 		go func() {
-			err := broadcaster.SendMsg("YO")
+			err := broadcaster.BroadCast("YO")
 			require.NoError(t, err)
 		}()
 

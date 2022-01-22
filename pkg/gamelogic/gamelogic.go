@@ -47,6 +47,7 @@ func (l *GameLogic) Run() {
 	for {
 		select {
 		case <-l.ctx.Done():
+			l.log.Debug("Gamelogic done")
 			return
 		case <-ticker.C:
 			zombieMove, err := l.generator.Next()
